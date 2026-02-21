@@ -433,10 +433,22 @@ unsafe fn drawitem(l: LPARAM) {
         rgb(74, 74, 78)
     };
     fillround(hdc, row, fill, edge, 8);
+    let font = GetStockObject(DEFAULT_GUI_FONT);
+    let old = SelectObject(hdc, font);
     let _ = SetBkMode(hdc, TRANSPARENT);
     let _ = SetTextColor(hdc, rgb(242, 242, 244));
-    let mut text = vec![0u16; 64];
-    let _ = GetWindowTextW((*dis).hwndItem, &mut text);
+    let text = if (*dis).CtlID as i32 == BID {
+        "Back"
+    } else if (*dis).CtlID as i32 == AID {
+        "Apply"
+    } else if (*dis).CtlID as i32 == RID {
+        "Reset"
+    } else if (*dis).CtlID as i32 == CID {
+        "Close"
+    } else {
+        ""
+    };
+    let mut wide = wstr(text);
     let mut rect = RECT {
         left: row.left,
         top: row.top,
@@ -445,10 +457,11 @@ unsafe fn drawitem(l: LPARAM) {
     };
     let _ = DrawTextW(
         hdc,
-        &mut text,
+        &mut wide,
         &mut rect,
         DT_CENTER | DT_VCENTER | DT_SINGLELINE,
     );
+    let _ = SelectObject(hdc, old);
 }
 
 unsafe fn setfont(window: HWND, font: HGDIOBJ) {
