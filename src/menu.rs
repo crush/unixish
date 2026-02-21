@@ -133,8 +133,6 @@ unsafe extern "system" fn proc(window: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 } else {
                     let _ = DestroyWindow(window);
                 }
-            } else if !ptr.is_null() {
-                let _ = DestroyWindow(window);
             }
             LRESULT(0)
         }
@@ -144,7 +142,10 @@ unsafe extern "system" fn proc(window: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
         }
         WM_CTLCOLORSTATIC | WM_CTLCOLOREDIT | WM_CTLCOLORBTN => color(window, w),
         WM_KILLFOCUS => {
-            let _ = DestroyWindow(window);
+            let next = HWND(w.0 as *mut _);
+            if next.0.is_null() || !IsChild(window, next).as_bool() {
+                let _ = DestroyWindow(window);
+            }
             LRESULT(0)
         }
         WM_KEYDOWN => {
@@ -174,7 +175,7 @@ unsafe fn configmode(window: HWND, state: *mut State) {
     (*state).mode = Mode::Config;
     let high = 520;
     let wide = 520;
-    let point = spot(high, wide);
+    let point = expand(window, high, wide);
     let _ = SetWindowPos(
         window,
         None,
@@ -547,6 +548,33 @@ unsafe fn spot(high: i32, wide: i32) -> POINT {
     let work = info.rcWork;
     let mut x = point.x - wide + 10;
     let mut y = point.y - high + 6;
+    if x < work.left {
+        x = work.left;
+    }
+    if y < work.top {
+        y = work.top;
+    }
+    if x + wide > work.right {
+        x = work.right - wide;
+    }
+    if y + high > work.bottom {
+        y = work.bottom - high;
+    }
+    POINT { x, y }
+}
+
+unsafe fn expand(window: HWND, high: i32, wide: i32) -> POINT {
+    let mut rect = RECT::default();
+    let _ = GetWindowRect(window, &mut rect);
+    let monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+    let mut info = MONITORINFO {
+        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+        ..Default::default()
+    };
+    let _ = GetMonitorInfoW(monitor, &mut info as *mut MONITORINFO as *mut _);
+    let work = info.rcWork;
+    let mut x = rect.right - wide;
+    let mut y = rect.top;
     if x < work.left {
         x = work.left;
     }
