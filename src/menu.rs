@@ -3,6 +3,7 @@ use crate::hotkey;
 use windows::Win32::Foundation::*;
 use windows::Win32::Graphics::Gdi::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::VK_ESCAPE;
+use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::PCWSTR;
 
@@ -21,6 +22,8 @@ enum Mode {
 struct State {
     owner: HWND,
     list: Vec<Item>,
+    anchor: POINT,
+    icon: RECT,
     hover: i32,
     mode: Mode,
     lab: [HWND; 11],
@@ -55,10 +58,13 @@ pub unsafe fn show(owner: HWND, list: Vec<Item>) {
     };
     let _ = RegisterClassW(&wc);
     let high = size(&list);
-    let point = spot(high, WIDE);
+    let (anchor, icon) = iconpos(owner);
+    let point = popup(anchor, icon, high, WIDE);
     let data = Box::new(State {
         owner,
         list,
+        anchor,
+        icon,
         hover: -1,
         mode: Mode::Menu,
         lab: [HWND::default(); 11],
@@ -176,7 +182,7 @@ unsafe fn configmode(window: HWND, state: *mut State) {
     (*state).mode = Mode::Config;
     let high = 520;
     let wide = 520;
-    let point = expand(window, high, wide);
+    let point = popup((*state).anchor, (*state).icon, high, wide);
     let _ = SetWindowPos(
         window,
         None,
@@ -195,7 +201,7 @@ unsafe fn menumode(window: HWND, state: *mut State) {
     (*state).mode = Mode::Menu;
     hide(state);
     let high = size(&(*state).list);
-    let point = collapse(window, high, WIDE);
+    let point = popup((*state).anchor, (*state).icon, high, WIDE);
     let _ = SetWindowPos(
         window,
         None,
@@ -546,85 +552,57 @@ fn pick(list: &[Item], y: i32) -> i32 {
     -1
 }
 
-unsafe fn spot(high: i32, wide: i32) -> POINT {
+unsafe fn iconpos(owner: HWND) -> (POINT, RECT) {
+    let id = NOTIFYICONIDENTIFIER {
+        cbSize: std::mem::size_of::<NOTIFYICONIDENTIFIER>() as u32,
+        hWnd: owner,
+        uID: 1,
+        ..Default::default()
+    };
+    if let Ok(rect) = Shell_NotifyIconGetRect(&id) {
+        return (
+            POINT {
+                x: rect.right,
+                y: rect.top,
+            },
+            rect,
+        );
+    }
     let mut point = POINT::default();
     let _ = GetCursorPos(&mut point);
-    let monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
-    let mut info = MONITORINFO {
-        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
-        ..Default::default()
-    };
-    let _ = GetMonitorInfoW(monitor, &mut info as *mut MONITORINFO as *mut _);
-    let work = info.rcWork;
-    let mut x = point.x - wide + 10;
-    let mut y = point.y - high + 6;
-    if x < work.left {
-        x = work.left;
-    }
-    if y < work.top {
-        y = work.top;
-    }
-    if x + wide > work.right {
-        x = work.right - wide;
-    }
-    if y + high > work.bottom {
-        y = work.bottom - high;
-    }
-    POINT { x, y }
+    (
+        point,
+        RECT {
+            left: point.x,
+            top: point.y,
+            right: point.x + 1,
+            bottom: point.y + 1,
+        },
+    )
 }
 
-unsafe fn expand(window: HWND, high: i32, wide: i32) -> POINT {
-    let mut rect = RECT::default();
-    let _ = GetWindowRect(window, &mut rect);
-    let monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
-    let mut info = MONITORINFO {
-        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
-        ..Default::default()
-    };
-    let _ = GetMonitorInfoW(monitor, &mut info as *mut MONITORINFO as *mut _);
-    let work = info.rcWork;
-    let mut x = rect.right - wide;
-    let mut y = rect.bottom - high;
-    if x < work.left {
-        x = work.left;
+unsafe fn popup(anchor: POINT, icon: RECT, high: i32, wide: i32) -> POINT {
+    let size = SIZE { cx: wide, cy: high };
+    let mut out = RECT::default();
+    let ok = CalculatePopupWindowPosition(
+        &anchor,
+        &size,
+        (TPM_RIGHTALIGN | TPM_BOTTOMALIGN | TPM_WORKAREA).0,
+        Some(&icon),
+        &mut out,
+    )
+    .is_ok();
+    if ok {
+        POINT {
+            x: out.left,
+            y: out.top,
+        }
+    } else {
+        POINT {
+            x: anchor.x - wide,
+            y: anchor.y - high,
+        }
     }
-    if y < work.top {
-        y = work.top;
-    }
-    if x + wide > work.right {
-        x = work.right - wide;
-    }
-    if y + high > work.bottom {
-        y = work.bottom - high;
-    }
-    POINT { x, y }
-}
-
-unsafe fn collapse(window: HWND, high: i32, wide: i32) -> POINT {
-    let mut rect = RECT::default();
-    let _ = GetWindowRect(window, &mut rect);
-    let monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
-    let mut info = MONITORINFO {
-        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
-        ..Default::default()
-    };
-    let _ = GetMonitorInfoW(monitor, &mut info as *mut MONITORINFO as *mut _);
-    let work = info.rcWork;
-    let mut x = rect.right - wide;
-    let mut y = rect.top;
-    if x < work.left {
-        x = work.left;
-    }
-    if y < work.top {
-        y = work.top;
-    }
-    if x + wide > work.right {
-        x = work.right - wide;
-    }
-    if y + high > work.bottom {
-        y = work.bottom - high;
-    }
-    POINT { x, y }
 }
 
 unsafe fn set(window: HWND, value: &str) {
