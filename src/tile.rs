@@ -35,9 +35,10 @@ pub fn left(screen: Rect) -> Rect {
 }
 
 pub fn right(screen: Rect) -> Rect {
-	let width = screen.width / 2;
+	let left = screen.width / 2;
+	let width = screen.width - left;
 	Rect {
-		x: screen.x + width,
+		x: screen.x + left,
 		y: screen.y,
 		width,
 		height: screen.height,
@@ -54,10 +55,11 @@ pub fn top(screen: Rect) -> Rect {
 }
 
 pub fn bottom(screen: Rect) -> Rect {
-	let height = screen.height / 2;
+	let top = screen.height / 2;
+	let height = screen.height - top;
 	Rect {
 		x: screen.x,
-		y: screen.y + height,
+		y: screen.y + top,
 		width: screen.width,
 		height,
 	}
