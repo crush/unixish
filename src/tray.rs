@@ -174,14 +174,14 @@ unsafe fn menu(window: HWND) {
 	if menu.0.is_null() {
 		return;
 	}
-	let pausetext = if state.paused { "resume" } else { "pause" };
-	let startuptext = if boot::enabled() { "startup off" } else { "startup on" };
+	let pausetext = if state.paused { "Resume" } else { "Pause" };
+	let startuptext = if boot::enabled() { "Startup Off" } else { "Startup On" };
 	let _ = AppendMenuW(menu, MF_STRING, MENU_PAUSE, PCWSTR(wstr(pausetext).as_ptr()));
-	let _ = AppendMenuW(menu, MF_STRING, MENU_CONFIG, PCWSTR(wstr("config").as_ptr()));
-	let _ = AppendMenuW(menu, MF_STRING, MENU_RELOAD, PCWSTR(wstr("reload").as_ptr()));
+	let _ = AppendMenuW(menu, MF_STRING, MENU_CONFIG, PCWSTR(wstr("Config").as_ptr()));
+	let _ = AppendMenuW(menu, MF_STRING, MENU_RELOAD, PCWSTR(wstr("Reload").as_ptr()));
 	let _ = AppendMenuW(menu, MF_STRING, MENU_STARTUP, PCWSTR(wstr(startuptext).as_ptr()));
 	let _ = AppendMenuW(menu, MF_SEPARATOR, 0, PCWSTR::null());
-	let _ = AppendMenuW(menu, MF_STRING, MENU_QUIT, PCWSTR(wstr("quit").as_ptr()));
+	let _ = AppendMenuW(menu, MF_STRING, MENU_QUIT, PCWSTR(wstr("Quit").as_ptr()));
 	let mut point = POINT::default();
 	let _ = GetCursorPos(&mut point);
 	let _ = SetForegroundWindow(window);
