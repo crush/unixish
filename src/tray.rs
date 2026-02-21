@@ -1,6 +1,7 @@
 use crate::boot;
 use crate::config::{self, Config};
 use crate::hotkey::{self, Bind};
+use crate::icon;
 use crate::win;
 use anyhow::Result;
 use std::mem::size_of;
@@ -21,13 +22,14 @@ struct State {
 	config: Config,
 	bind: Vec<Bind>,
 	paused: bool,
+	icon: HICON,
 }
 
 pub fn run() -> Result<()> {
 	unsafe {
 		let class = wstr("unixish");
 		let title = wstr("unixish");
-		let icon = LoadIconW(None, IDI_APPLICATION)?;
+		let icon = icon::load().unwrap_or(LoadIconW(None, IDI_APPLICATION)?);
 		let cursor = LoadCursorW(None, IDC_ARROW)?;
 		let wc = WNDCLASSW {
 			hCursor: cursor,
@@ -61,14 +63,16 @@ pub fn run() -> Result<()> {
 			config,
 			bind,
 			paused: false,
+			icon,
 		});
 		SetWindowLongPtrW(window, GWLP_USERDATA, Box::into_raw(state) as isize);
-		trayadd(window)?;
+		trayadd(window, icon)?;
 		looprun();
 		traydel(window);
 		let ptr = GetWindowLongPtrW(window, GWLP_USERDATA) as *mut State;
 		if !ptr.is_null() {
 			hotkey::unregister(window, &(*ptr).bind);
+			let _ = DestroyIcon((*ptr).icon);
 			let _ = Box::from_raw(ptr);
 		}
 	}
@@ -193,14 +197,14 @@ unsafe fn menu(window: HWND) {
 	let _ = DestroyMenu(menu);
 }
 
-unsafe fn trayadd(window: HWND) -> Result<()> {
+unsafe fn trayadd(window: HWND, icon: HICON) -> Result<()> {
 	let mut data = NOTIFYICONDATAW::default();
 	data.cbSize = size_of::<NOTIFYICONDATAW>() as u32;
 	data.hWnd = window;
 	data.uID = 1;
 	data.uFlags = NIF_MESSAGE | NIF_TIP | NIF_ICON;
 	data.uCallbackMessage = WM_TRAY;
-	data.hIcon = LoadIconW(None, IDI_APPLICATION)?;
+	data.hIcon = icon;
 	copytip(&mut data, "unixish");
 	let ok = Shell_NotifyIconW(NIM_ADD, &data).as_bool();
 	if !ok {

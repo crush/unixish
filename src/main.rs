@@ -3,6 +3,7 @@ mod app;
 mod boot;
 mod config;
 mod hotkey;
+mod icon;
 mod key;
 mod tile;
 mod tray;
@@ -11,4 +12,3 @@ mod win;
 fn main() -> anyhow::Result<()> {
 	app::run()
 }
-
