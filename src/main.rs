@@ -12,5 +12,5 @@ mod update;
 mod win;
 
 fn main() -> anyhow::Result<()> {
-	app::run()
+    app::run()
 }
