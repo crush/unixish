@@ -47,6 +47,7 @@ pub unsafe fn show(owner: HWND, list: Vec<Item>) {
     let class = wstr("UnixishMenu");
     let cursor = LoadCursorW(None, IDC_ARROW).ok();
     let wc = WNDCLASSW {
+        style: CS_DROPSHADOW,
         hCursor: cursor.unwrap_or_default(),
         lpszClassName: PCWSTR(class.as_ptr()),
         lpfnWndProc: Some(proc),
@@ -72,7 +73,7 @@ pub unsafe fn show(owner: HWND, list: Vec<Item>) {
         WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
         PCWSTR(class.as_ptr()),
         PCWSTR(wstr("Unixish").as_ptr()),
-        WS_POPUP | WS_BORDER,
+        WS_POPUP,
         point.x,
         point.y,
         WIDE,
@@ -280,10 +281,12 @@ unsafe fn controls(window: HWND, state: *mut State) {
         )
         .unwrap_or_default();
         let input = CreateWindowExW(
-            WS_EX_CLIENTEDGE,
+            Default::default(),
             PCWSTR(wstr("EDIT").as_ptr()),
             PCWSTR(wstr("").as_ptr()),
-            WINDOW_STYLE((WS_CHILD | WS_VISIBLE | WS_TABSTOP).0 | ES_AUTOHSCROLL as u32),
+            WINDOW_STYLE(
+                (WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER).0 | ES_AUTOHSCROLL as u32,
+            ),
             130,
             y,
             370,
@@ -379,7 +382,9 @@ unsafe fn button(window: HWND, text: &str, id: i32, x: i32, y: i32, font: HGDIOB
         Default::default(),
         PCWSTR(wstr("BUTTON").as_ptr()),
         PCWSTR(wstr(text).as_ptr()),
-        WINDOW_STYLE((WS_CHILD | WS_VISIBLE | WS_TABSTOP).0 | BS_PUSHBUTTON as u32),
+        WINDOW_STYLE(
+            (WS_CHILD | WS_VISIBLE | WS_TABSTOP).0 | BS_PUSHBUTTON as u32 | BS_FLAT as u32,
+        ),
         x,
         y,
         78,
@@ -458,6 +463,13 @@ unsafe fn paint(window: HWND) {
     let mut rc = RECT::default();
     let _ = GetClientRect(window, &mut rc);
     let _ = FillRect(hdc, &rc, (*ptr).brush);
+    let frame = RECT {
+        left: 0,
+        top: 0,
+        right: rc.right - 1,
+        bottom: rc.bottom - 1,
+    };
+    fillround(hdc, frame, rgb(11, 14, 24), rgb(71, 78, 98), 8);
     if (*ptr).mode == Mode::Menu {
         paintmenu(ptr, hdc, rc);
     }
@@ -484,19 +496,17 @@ unsafe fn paintmenu(state: *mut State, hdc: HDC, rc: RECT) {
             continue;
         }
         let row = RECT {
-            left: PAD - 1,
+            left: PAD + 2,
             top,
-            right: rc.right - PAD + 1,
+            right: rc.right - PAD - 2,
             bottom: top + ROW,
         };
-        if (*state).hover == index as i32 {
-            let hover = CreateSolidBrush(rgb(36, 39, 49));
-            let _ = FillRect(hdc, &row, hover);
-            let edge = CreateSolidBrush(rgb(52, 56, 72));
-            let _ = FrameRect(hdc, &row, edge);
-            let _ = DeleteObject(edge.into());
-            let _ = DeleteObject(hover.into());
-        }
+        let (fill, edge) = if (*state).hover == index as i32 {
+            (rgb(40, 45, 60), rgb(71, 78, 98))
+        } else {
+            (rgb(15, 18, 29), rgb(28, 34, 49))
+        };
+        fillround(hdc, row, fill, edge, 8);
         let _ = SetTextColor(hdc, rgb(246, 247, 251));
         let mut textrect = RECT {
             left: row.left + 11,
@@ -650,4 +660,24 @@ fn wstr(text: &str) -> Vec<u16> {
 
 fn mid(id: i32) -> HMENU {
     HMENU(id as isize as *mut _)
+}
+
+unsafe fn fillround(hdc: HDC, rect: RECT, fill: COLORREF, edge: COLORREF, radius: i32) {
+    let brush = CreateSolidBrush(fill);
+    let pen = CreatePen(PS_SOLID, 1, edge);
+    let oldbrush = SelectObject(hdc, brush.into());
+    let oldpen = SelectObject(hdc, pen.into());
+    let _ = RoundRect(
+        hdc,
+        rect.left,
+        rect.top,
+        rect.right,
+        rect.bottom,
+        radius,
+        radius,
+    );
+    let _ = SelectObject(hdc, oldbrush);
+    let _ = SelectObject(hdc, oldpen);
+    let _ = DeleteObject(brush.into());
+    let _ = DeleteObject(pen.into());
 }
