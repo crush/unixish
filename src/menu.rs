@@ -35,10 +35,10 @@ struct State {
     brush: HBRUSH,
 }
 
-const ROW: i32 = 33;
-const SEP: i32 = 12;
-const PAD: i32 = 6;
-const WIDE: i32 = 184;
+const ROW: i32 = 31;
+const SEP: i32 = 8;
+const PAD: i32 = 4;
+const WIDE: i32 = 178;
 const CFG: usize = 1002;
 const RLD: usize = 1003;
 const BID: i32 = 7101;
@@ -488,7 +488,7 @@ unsafe fn paintmenu(state: *mut State, hdc: HDC, rc: RECT) {
                 right: rc.right - PAD,
                 bottom: top + SEP / 2 + 1,
             };
-            let brush = CreateSolidBrush(rgb(64, 64, 68));
+            let brush = CreateSolidBrush(rgb(46, 46, 50));
             let _ = FillRect(hdc, &line, brush);
             let _ = DeleteObject(brush.into());
             top += SEP;
@@ -501,14 +501,14 @@ unsafe fn paintmenu(state: *mut State, hdc: HDC, rc: RECT) {
             bottom: top + ROW,
         };
         let (fill, edge) = if (*state).hover == index as i32 {
-            (rgb(50, 50, 54), rgb(84, 84, 88))
+            (rgb(47, 47, 51), rgb(74, 74, 78))
         } else {
-            (rgb(24, 24, 26), rgb(52, 52, 56))
+            (rgb(22, 22, 24), rgb(42, 42, 46))
         };
         fillround(hdc, row, fill, edge, 8);
         let _ = SetTextColor(hdc, rgb(242, 242, 244));
         let mut textrect = RECT {
-            left: row.left + 11,
+            left: row.left + 10,
             top: row.top,
             right: row.right,
             bottom: row.bottom,
