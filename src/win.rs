@@ -51,8 +51,22 @@ pub fn apply(action: Move, layout: Layout) -> Result<()> {
 	let target = match action {
 		Move::Almost => tile::almost(screen, layout.width, layout.height),
 		Move::Center => tile::center(screen, current),
-		Move::Left => tile::left(screen),
-		Move::Right => tile::right(screen),
+		Move::Left => {
+			let target = tile::left(screen);
+			if same(current, target, 6) {
+				movehalf(window, current, -1, true)?
+			} else {
+				target
+			}
+		}
+		Move::Right => {
+			let target = tile::right(screen);
+			if same(current, target, 6) {
+				movehalf(window, current, 1, false)?
+			} else {
+				target
+			}
+		}
 		Move::Top => tile::top(screen),
 		Move::Bottom => tile::bottom(screen),
 		Move::Next => moveother(window, current, 1)?,
@@ -60,6 +74,28 @@ pub fn apply(action: Move, layout: Layout) -> Result<()> {
 	};
 	setwindow(window, target)?;
 	Ok(())
+}
+
+fn same(a: Rect, b: Rect, gap: i32) -> bool {
+	(a.x - b.x).abs() <= gap
+		&& (a.y - b.y).abs() <= gap
+		&& (a.width - b.width).abs() <= gap
+		&& (a.height - b.height).abs() <= gap
+}
+
+fn movehalf(window: HWND, current: Rect, step: i32, left: bool) -> Result<Rect> {
+	let list = screens()?;
+	if list.is_empty() {
+		return Err(anyhow!("screen"));
+	}
+	let now = monitorfromrect(current);
+	let index = list.iter().position(|item| item.handle == now).unwrap_or_else(|| {
+		let near = unsafe { MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST) };
+		list.iter().position(|item| item.handle == near).unwrap_or(0)
+	}) as i32;
+	let next = (index + step).rem_euclid(list.len() as i32) as usize;
+	let target = list[next].area();
+	Ok(if left { tile::left(target) } else { tile::right(target) })
 }
 
 fn moveother(window: HWND, current: Rect, step: i32) -> Result<Rect> {
