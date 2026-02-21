@@ -29,6 +29,7 @@ struct State {
     mode: Mode,
     lab: [HWND; 11],
     edit: [HWND; 10],
+    boxs: [RECT; 10],
     back: HWND,
     apply: HWND,
     reset: HWND,
@@ -70,6 +71,7 @@ pub unsafe fn show(owner: HWND, list: Vec<Item>) {
         mode: Mode::Menu,
         lab: [HWND::default(); 11],
         edit: [HWND::default(); 10],
+        boxs: [RECT::default(); 10],
         back: HWND::default(),
         apply: HWND::default(),
         reset: HWND::default(),
@@ -298,13 +300,11 @@ unsafe fn controls(window: HWND, state: *mut State) {
             Default::default(),
             PCWSTR(wstr("EDIT").as_ptr()),
             PCWSTR(wstr("").as_ptr()),
-            WINDOW_STYLE(
-                (WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER).0 | ES_AUTOHSCROLL as u32,
-            ),
-            130,
-            y,
-            370,
-            30,
+            WINDOW_STYLE((WS_CHILD | WS_VISIBLE | WS_TABSTOP).0 | ES_AUTOHSCROLL as u32),
+            134,
+            y + 4,
+            362,
+            22,
             Some(window),
             Some(mid(7300 + index as i32)),
             None,
@@ -315,6 +315,12 @@ unsafe fn controls(window: HWND, state: *mut State) {
         setfont(input, font);
         (*state).lab[index + 1] = label;
         (*state).edit[index] = input;
+        (*state).boxs[index] = RECT {
+            left: 130,
+            top: y,
+            right: 500,
+            bottom: y + 30,
+        };
     }
     (*state).back = button(window, "Back", BID, 18, 460, font);
     (*state).apply = button(window, "Apply", AID, 260, 460, font);
@@ -533,6 +539,8 @@ unsafe fn paint(window: HWND) {
     let _ = FillRect(hdc, &rc, (*ptr).brush);
     if (*ptr).mode == Mode::Menu {
         paintmenu(ptr, hdc, rc);
+    } else {
+        paintconfig(ptr, hdc);
     }
     let _ = EndPaint(window, &ps);
 }
@@ -585,6 +593,13 @@ unsafe fn paintmenu(state: *mut State, hdc: HDC, rc: RECT) {
         top += ROW;
     }
     let _ = SelectObject(hdc, old);
+}
+
+unsafe fn paintconfig(state: *mut State, hdc: HDC) {
+    for index in 0..10 {
+        let row = (*state).boxs[index];
+        fillround(hdc, row, rgb(22, 22, 24), rgb(52, 52, 56), 8);
+    }
 }
 
 fn size(list: &[Item]) -> i32 {
