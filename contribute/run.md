@@ -8,6 +8,19 @@ cargo test
 cargo run
 ```
 
+## local testing
+
+```bash
+# build once
+cargo build --release
+
+# run app directly (no cargo wrapper)
+.\target\release\unixish.exe
+
+# optional startup for daily testing
+.\target\release\unixish.exe startup on
+```
+
 ## cli
 
 ```bash
