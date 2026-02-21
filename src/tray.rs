@@ -27,18 +27,20 @@ struct State {
 	bind: Vec<Bind>,
 	paused: bool,
 	update: bool,
-	icon: HICON,
+	iconbig: HICON,
+	iconsmall: HICON,
 }
 
 pub fn run() -> Result<()> {
 	unsafe {
 		let class = wstr("Unixish");
 		let title = wstr("Unixish");
-		let icon = icon::load().unwrap_or(LoadIconW(None, IDI_APPLICATION)?);
+		let iconbig = icon::load(32).unwrap_or(LoadIconW(None, IDI_APPLICATION)?);
+		let iconsmall = icon::load(16).unwrap_or(iconbig);
 		let cursor = LoadCursorW(None, IDC_ARROW)?;
 		let wc = WNDCLASSW {
 			hCursor: cursor,
-			hIcon: icon,
+			hIcon: iconbig,
 			lpszClassName: PCWSTR(class.as_ptr()),
 			lpfnWndProc: Some(proc),
 			..Default::default()
@@ -77,10 +79,11 @@ pub fn run() -> Result<()> {
 			bind,
 			paused,
 			update: update::available(),
-			icon,
+			iconbig,
+			iconsmall,
 		});
 		SetWindowLongPtrW(window, GWLP_USERDATA, Box::into_raw(state) as isize);
-		trayadd(window, icon)?;
+		trayadd(window, iconsmall)?;
 		if state::first() {
 			notify(window, "Ready");
 		}
@@ -89,7 +92,10 @@ pub fn run() -> Result<()> {
 		let ptr = GetWindowLongPtrW(window, GWLP_USERDATA) as *mut State;
 		if !ptr.is_null() {
 			hotkey::unregister(window, &(*ptr).bind);
-			let _ = DestroyIcon((*ptr).icon);
+			let _ = DestroyIcon((*ptr).iconsmall);
+			if (*ptr).iconbig.0 != (*ptr).iconsmall.0 {
+				let _ = DestroyIcon((*ptr).iconbig);
+			}
 			let _ = Box::from_raw(ptr);
 		}
 	}
