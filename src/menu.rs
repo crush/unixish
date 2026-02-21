@@ -2,6 +2,7 @@ use crate::config::{self, Config, Hotkey, Layout};
 use crate::hotkey;
 use windows::Win32::Foundation::*;
 use windows::Win32::Graphics::Gdi::*;
+use windows::Win32::UI::Controls::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::VK_ESCAPE;
 use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
@@ -146,6 +147,10 @@ unsafe extern "system" fn proc(window: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
         WM_COMMAND => {
             action(window, w.0 & 0xffff);
             LRESULT(0)
+        }
+        WM_DRAWITEM => {
+            drawitem(l);
+            LRESULT(1)
         }
         WM_CTLCOLORSTATIC | WM_CTLCOLOREDIT | WM_CTLCOLORBTN => color(window, w),
         WM_KILLFOCUS => {
@@ -389,7 +394,7 @@ unsafe fn button(window: HWND, text: &str, id: i32, x: i32, y: i32, font: HGDIOB
         PCWSTR(wstr("BUTTON").as_ptr()),
         PCWSTR(wstr(text).as_ptr()),
         WINDOW_STYLE(
-            (WS_CHILD | WS_VISIBLE | WS_TABSTOP).0 | BS_PUSHBUTTON as u32 | BS_FLAT as u32,
+            (WS_CHILD | WS_VISIBLE | WS_TABSTOP).0 | BS_PUSHBUTTON as u32 | BS_OWNERDRAW as u32,
         ),
         x,
         y,
@@ -403,6 +408,47 @@ unsafe fn button(window: HWND, text: &str, id: i32, x: i32, y: i32, font: HGDIOB
     .unwrap_or_default();
     setfont(value, font);
     value
+}
+
+unsafe fn drawitem(l: LPARAM) {
+    let dis = l.0 as *const DRAWITEMSTRUCT;
+    if dis.is_null() {
+        return;
+    }
+    if (*dis).CtlType != ODT_BUTTON {
+        return;
+    }
+    let hdc = (*dis).hDC;
+    let row = (*dis).rcItem;
+    let selected = ((*dis).itemState.0 & ODS_SELECTED.0) != 0;
+    let focused = ((*dis).itemState.0 & ODS_FOCUS.0) != 0;
+    let fill = if selected {
+        rgb(64, 64, 68)
+    } else {
+        rgb(30, 30, 34)
+    };
+    let edge = if focused {
+        rgb(108, 108, 114)
+    } else {
+        rgb(74, 74, 78)
+    };
+    fillround(hdc, row, fill, edge, 8);
+    let _ = SetBkMode(hdc, TRANSPARENT);
+    let _ = SetTextColor(hdc, rgb(242, 242, 244));
+    let mut text = vec![0u16; 64];
+    let _ = GetWindowTextW((*dis).hwndItem, &mut text);
+    let mut rect = RECT {
+        left: row.left,
+        top: row.top,
+        right: row.right,
+        bottom: row.bottom,
+    };
+    let _ = DrawTextW(
+        hdc,
+        &mut text,
+        &mut rect,
+        DT_CENTER | DT_VCENTER | DT_SINGLELINE,
+    );
 }
 
 unsafe fn setfont(window: HWND, font: HGDIOBJ) {
