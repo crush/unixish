@@ -16,10 +16,10 @@ struct State {
     hover: i32,
 }
 
-const ROW: i32 = 30;
-const SEP: i32 = 10;
-const PAD: i32 = 8;
-const WIDTH: i32 = 190;
+const ROW: i32 = 33;
+const SEP: i32 = 12;
+const PAD: i32 = 6;
+const WIDTH: i32 = 184;
 
 pub unsafe fn show(owner: HWND, list: Vec<Item>) {
     let class = wstr("UnixishMenu");
@@ -135,7 +135,7 @@ unsafe fn paint(window: HWND) {
     let hdc = BeginPaint(window, &mut ps);
     let mut rc = RECT::default();
     let _ = GetClientRect(window, &mut rc);
-    let bg = CreateSolidBrush(rgb(18, 18, 20));
+    let bg = CreateSolidBrush(rgb(9, 11, 18));
     let _ = FillRect(hdc, &rc, bg);
     let _ = DeleteObject(bg.into());
     let font = GetStockObject(DEFAULT_GUI_FONT);
@@ -150,26 +150,29 @@ unsafe fn paint(window: HWND) {
                 right: rc.right - PAD,
                 bottom: top + SEP / 2 + 1,
             };
-            let brush = CreateSolidBrush(rgb(42, 42, 46));
+            let brush = CreateSolidBrush(rgb(48, 53, 71));
             let _ = FillRect(hdc, &line, brush);
             let _ = DeleteObject(brush.into());
             top += SEP;
             continue;
         }
         let row = RECT {
-            left: PAD,
+            left: PAD - 1,
             top,
-            right: rc.right - PAD,
+            right: rc.right - PAD + 1,
             bottom: top + ROW,
         };
         if (*ptr).hover == index as i32 {
-            let hover = CreateSolidBrush(rgb(38, 38, 42));
+            let hover = CreateSolidBrush(rgb(36, 39, 49));
             let _ = FillRect(hdc, &row, hover);
+            let edge = CreateSolidBrush(rgb(52, 56, 72));
+            let _ = FrameRect(hdc, &row, edge);
+            let _ = DeleteObject(edge.into());
             let _ = DeleteObject(hover.into());
         }
-        let _ = SetTextColor(hdc, rgb(238, 238, 240));
+        let _ = SetTextColor(hdc, rgb(246, 247, 251));
         let mut text = RECT {
-            left: row.left + 10,
+            left: row.left + 11,
             top: row.top,
             right: row.right,
             bottom: row.bottom,
@@ -217,8 +220,8 @@ unsafe fn spot(height: i32) -> POINT {
     };
     let _ = GetMonitorInfoW(monitor, &mut info as *mut MONITORINFO as *mut _);
     let work = info.rcWork;
-    let mut x = point.x - WIDTH + 16;
-    let mut y = point.y - height + 8;
+    let mut x = point.x - WIDTH + 10;
+    let mut y = point.y - height + 6;
     if x < work.left {
         x = work.left;
     }
