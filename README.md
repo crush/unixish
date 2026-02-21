@@ -2,7 +2,7 @@
 > install?
 
   cargo install --git https://github.com/crush/unixish unixish
-  powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/crush/unixish/main/scripts/install.ps1 | iex"
+  powershell -ep bypass -c "irm https://raw.githubusercontent.com/crush/unixish/main/w | iex"
 
 > usage?
 
