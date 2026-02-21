@@ -90,6 +90,7 @@ pub unsafe fn show(owner: HWND, list: Vec<Item>) {
         None,
         Some(Box::into_raw(data) as *const _),
     ) {
+        round(window, WIDE, high, 10);
         let _ = ShowWindow(window, SW_SHOWNOACTIVATE);
         let _ = UpdateWindow(window);
         let _ = SetForegroundWindow(window);
@@ -197,6 +198,7 @@ unsafe fn configmode(window: HWND, state: *mut State) {
         high,
         SWP_NOACTIVATE | SWP_NOZORDER,
     );
+    round(window, wide, high, 12);
     controls(window, state);
     load(state);
     let _ = InvalidateRect(Some(window), None, true);
@@ -216,6 +218,7 @@ unsafe fn menumode(window: HWND, state: *mut State) {
         high,
         SWP_NOACTIVATE | SWP_NOZORDER,
     );
+    round(window, WIDE, high, 10);
     let _ = InvalidateRect(Some(window), None, true);
 }
 
@@ -710,4 +713,9 @@ unsafe fn fillround(hdc: HDC, rect: RECT, fill: COLORREF, edge: COLORREF, radius
     let _ = SelectObject(hdc, oldpen);
     let _ = DeleteObject(brush.into());
     let _ = DeleteObject(pen.into());
+}
+
+unsafe fn round(window: HWND, wide: i32, high: i32, radius: i32) {
+    let region = CreateRoundRectRgn(0, 0, wide + 1, high + 1, radius, radius);
+    let _ = SetWindowRgn(window, Some(region), true);
 }
