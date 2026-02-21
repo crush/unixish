@@ -4,7 +4,6 @@ use crate::hotkey::{self, Bind};
 use crate::icon;
 use crate::lock::Lock;
 use crate::menu;
-use crate::panel;
 use crate::state;
 use crate::update;
 use crate::win;
@@ -223,8 +222,6 @@ unsafe fn handle(window: HWND, cmd: usize) {
     let state = &mut *ptr;
     if cmd == PAUSE {
         state.paused = !state.paused;
-    } else if cmd == CONFIG {
-        panel::open(window);
     } else if cmd == RELOAD {
         reload(window, state);
     } else if cmd == STARTUP {

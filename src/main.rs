@@ -7,7 +7,6 @@ mod icon;
 mod key;
 mod lock;
 mod menu;
-mod panel;
 mod state;
 mod tile;
 mod tray;
