@@ -54,7 +54,7 @@ pub fn apply(action: Move, layout: Layout) -> Result<()> {
 		Move::Left => {
 			let target = tile::left(screen);
 			if same(current, target, 6) {
-				movehalf(window, current, -1, true)?
+				movehalf(window, current, -1, false)?
 			} else {
 				target
 			}
@@ -62,7 +62,7 @@ pub fn apply(action: Move, layout: Layout) -> Result<()> {
 		Move::Right => {
 			let target = tile::right(screen);
 			if same(current, target, 6) {
-				movehalf(window, current, 1, false)?
+				movehalf(window, current, 1, true)?
 			} else {
 				target
 			}
