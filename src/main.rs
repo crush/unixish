@@ -5,9 +5,10 @@ mod config;
 mod hotkey;
 mod icon;
 mod key;
-mod log;
+mod state;
 mod tile;
 mod tray;
+mod update;
 mod win;
 
 fn main() -> anyhow::Result<()> {

@@ -2,7 +2,8 @@ use crate::boot;
 use crate::config::{self, Config};
 use crate::hotkey::{self, Bind};
 use crate::icon;
-use crate::log;
+use crate::state;
+use crate::update;
 use crate::win;
 use anyhow::Result;
 use std::mem::size_of;
@@ -18,13 +19,14 @@ const MENU_CONFIG: usize = 1002;
 const MENU_RELOAD: usize = 1003;
 const MENU_STARTUP: usize = 1004;
 const MENU_RESET: usize = 1005;
-const MENU_LOG: usize = 1006;
+const MENU_UPDATE: usize = 1006;
 const MENU_QUIT: usize = 1007;
 
 struct State {
 	config: Config,
 	bind: Vec<Bind>,
 	paused: bool,
+	update: bool,
 	icon: HICON,
 }
 
@@ -60,17 +62,28 @@ pub fn run() -> Result<()> {
 			return Ok(());
 		}
 		let config = config::load()?;
-		let bind = hotkey::bind(&config)?;
-		hotkey::register(window, &bind)?;
-		log::write("start");
+		let bind = hotkey::bind(&config).unwrap_or_default();
+		let mut paused = false;
+		if !bind.is_empty() && hotkey::register(window, &bind).is_err() {
+			paused = true;
+			alert(window, "Conflict");
+		}
+		if bind.is_empty() {
+			paused = true;
+			alert(window, "Conflict");
+		}
 		let state = Box::new(State {
 			config,
 			bind,
-			paused: false,
+			paused,
+			update: update::available(),
 			icon,
 		});
 		SetWindowLongPtrW(window, GWLP_USERDATA, Box::into_raw(state) as isize);
 		trayadd(window, icon)?;
+		if state::first() {
+			notify(window, "Ready");
+		}
 		looprun();
 		traydel(window);
 		let ptr = GetWindowLongPtrW(window, GWLP_USERDATA) as *mut State;
@@ -133,7 +146,6 @@ unsafe fn handle(window: HWND, cmd: usize) {
 	let state = &mut *ptr;
 	if cmd == MENU_PAUSE {
 		state.paused = !state.paused;
-		log::write(if state.paused { "pause" } else { "resume" });
 		return;
 	}
 	if cmd == MENU_CONFIG {
@@ -149,11 +161,13 @@ unsafe fn handle(window: HWND, cmd: usize) {
 				if hotkey::register(window, &bind).is_ok() {
 					state.config = config;
 					state.bind = bind;
-					log::write("reload");
+					state.paused = false;
 				} else {
 					let _ = hotkey::register(window, &state.bind);
-					log::write("reload-fail");
+					alert(window, "Conflict");
 				}
+			} else {
+				alert(window, "Conflict");
 			}
 		}
 		return;
@@ -161,10 +175,8 @@ unsafe fn handle(window: HWND, cmd: usize) {
 	if cmd == MENU_STARTUP {
 		if boot::enabled() {
 			let _ = boot::off();
-			log::write("startup-off");
 		} else {
 			let _ = boot::on();
-			log::write("startup-on");
 		}
 		return;
 	}
@@ -175,20 +187,26 @@ unsafe fn handle(window: HWND, cmd: usize) {
 				if hotkey::register(window, &bind).is_ok() {
 					state.config = config;
 					state.bind = bind;
-					log::write("reset");
+					state.paused = false;
+				} else {
+					alert(window, "Conflict");
 				}
+			} else {
+				alert(window, "Conflict");
 			}
 		}
 		return;
 	}
-	if cmd == MENU_LOG {
-		if let Ok(path) = log::path() {
-			let _ = std::process::Command::new("notepad").arg(path).spawn();
+	if cmd == MENU_UPDATE {
+		if update::run().is_ok() {
+			state.update = update::available();
+			notify(window, "Updated");
+		} else {
+			alert(window, "Update");
 		}
 		return;
 	}
 	if cmd == MENU_QUIT {
-		log::write("quit");
 		let _ = DestroyWindow(window);
 	}
 }
@@ -210,7 +228,8 @@ unsafe fn menu(window: HWND) {
 	let _ = AppendMenuW(menu, MF_STRING, MENU_RELOAD, PCWSTR(wstr("Reload").as_ptr()));
 	let _ = AppendMenuW(menu, MF_STRING, MENU_STARTUP, PCWSTR(wstr(startuptext).as_ptr()));
 	let _ = AppendMenuW(menu, MF_STRING, MENU_RESET, PCWSTR(wstr("Reset").as_ptr()));
-	let _ = AppendMenuW(menu, MF_STRING, MENU_LOG, PCWSTR(wstr("Log").as_ptr()));
+	let updatetext = if state.update { "Update Now" } else { "Update" };
+	let _ = AppendMenuW(menu, MF_STRING, MENU_UPDATE, PCWSTR(wstr(updatetext).as_ptr()));
 	let _ = AppendMenuW(menu, MF_SEPARATOR, 0, PCWSTR::null());
 	let _ = AppendMenuW(menu, MF_STRING, MENU_QUIT, PCWSTR(wstr("Quit").as_ptr()));
 	let mut point = POINT::default();
@@ -257,6 +276,34 @@ fn copytip(data: &mut NOTIFYICONDATAW, text: &str) {
 	let max = data.szTip.len().saturating_sub(1).min(wide.len());
 	data.szTip[..max].copy_from_slice(&wide[..max]);
 	data.szTip[max] = 0;
+}
+
+unsafe fn notify(window: HWND, text: &str) {
+	let mut data = NOTIFYICONDATAW::default();
+	data.cbSize = size_of::<NOTIFYICONDATAW>() as u32;
+	data.hWnd = window;
+	data.uID = 1;
+	data.uFlags = NIF_INFO;
+	data.dwInfoFlags = NIIF_INFO;
+	copytext(&mut data.szInfoTitle, "Unixish");
+	copytext(&mut data.szInfo, text);
+	let _ = Shell_NotifyIconW(NIM_MODIFY, &data);
+}
+
+unsafe fn alert(window: HWND, text: &str) {
+	let _ = MessageBoxW(
+		Some(window),
+		PCWSTR(wstr(text).as_ptr()),
+		PCWSTR(wstr("Unixish").as_ptr()),
+		MB_OK | MB_ICONWARNING,
+	);
+}
+
+fn copytext<const N: usize>(value: &mut [u16; N], text: &str) {
+	let wide: Vec<u16> = text.encode_utf16().collect();
+	let max = value.len().saturating_sub(1).min(wide.len());
+	value[..max].copy_from_slice(&wide[..max]);
+	value[max] = 0;
 }
 
 fn wstr(text: &str) -> Vec<u16> {

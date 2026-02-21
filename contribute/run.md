@@ -30,7 +30,7 @@ unixish startup status
 unixish startup on
 unixish startup off
 unixish reset
-unixish log
+unixish update
 ```
 
 ## tray
@@ -40,5 +40,5 @@ unixish log
 - Reload
 - Startup On or Off
 - Reset
-- Log
+- Update
 - Quit

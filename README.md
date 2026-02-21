@@ -13,7 +13,7 @@
   unixish startup on      # enable startup
   unixish startup off     # disable startup
   unixish reset           # reset config
-  unixish log             # print log path
+  unixish update          # install latest
 
 > tray?
 
@@ -22,7 +22,7 @@
   Reload
   Startup On or Off
   Reset
-  Log
+  Update
   Quit
 
 > features?

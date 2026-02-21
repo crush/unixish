@@ -1,8 +1,8 @@
 use crate::boot;
 use crate::config;
 use crate::hotkey;
-use crate::log;
 use crate::tray;
+use crate::update;
 use anyhow::Result;
 use windows::Win32::UI::HiDpi::*;
 
@@ -17,8 +17,14 @@ pub fn run() -> Result<()> {
 		}
 		Some("check") => {
 			let config = config::load()?;
-			hotkey::check(&config)?;
-			println!("ok");
+			println!(
+				"{}",
+				if hotkey::check(&config).is_ok() {
+					"ok"
+				} else {
+					"conflict"
+				}
+			);
 			Ok(())
 		}
 		Some("startup") => {
@@ -43,9 +49,9 @@ pub fn run() -> Result<()> {
 			println!("ok");
 			Ok(())
 		}
-		Some("log") => {
-			let path = log::path()?;
-			println!("{}", path.display());
+		Some("update") => {
+			update::run()?;
+			println!("ok");
 			Ok(())
 		}
 		_ => tray::run(),
