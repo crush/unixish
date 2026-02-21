@@ -53,14 +53,38 @@ fn moveother(window: HWND, current: Rect, step: i32) -> Result<Rect> {
 	if list.is_empty() {
 		return Err(anyhow!("screen"));
 	}
-	let now = unsafe { MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST) };
-	let index = list.iter().position(|item| item.handle == now).unwrap_or(0) as i32;
+	let now = monitorfromrect(current);
+	let index = list.iter().position(|item| item.handle == now).unwrap_or_else(|| {
+		let near = unsafe { MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST) };
+		list.iter().position(|item| item.handle == near).unwrap_or(0)
+	}) as i32;
 	let next = (index + step).rem_euclid(list.len() as i32) as usize;
+	let source = list[index as usize].work;
 	let target = list[next].work;
-	let width = current.width.min(target.width);
-	let height = current.height.min(target.height);
-	let x = target.x + (target.width - width) / 2;
-	let y = target.y + (target.height - height) / 2;
+	let sourcew = source.width.max(1) as f64;
+	let sourceh = source.height.max(1) as f64;
+	let relx = (current.x - source.x) as f64 / sourcew;
+	let rely = (current.y - source.y) as f64 / sourceh;
+	let relw = current.width as f64 / sourcew;
+	let relh = current.height as f64 / sourceh;
+	let mut width = ((target.width as f64) * relw).round() as i32;
+	let mut height = ((target.height as f64) * relh).round() as i32;
+	width = width.clamp(80, target.width.max(80));
+	height = height.clamp(60, target.height.max(60));
+	let mut x = target.x + ((target.width as f64) * relx).round() as i32;
+	let mut y = target.y + ((target.height as f64) * rely).round() as i32;
+	if x + width > target.x + target.width {
+		x = target.x + target.width - width;
+	}
+	if y + height > target.y + target.height {
+		y = target.y + target.height - height;
+	}
+	if x < target.x {
+		x = target.x;
+	}
+	if y < target.y {
+		y = target.y;
+	}
 	Ok(Rect { x, y, width, height })
 }
 
@@ -141,5 +165,14 @@ fn screens() -> Result<Vec<Screen>> {
 	if !ok.as_bool() {
 		return Err(anyhow!("enum"));
 	}
+	list.sort_by_key(|item| (item.work.x, item.work.y));
 	Ok(list)
+}
+
+fn monitorfromrect(rect: Rect) -> HMONITOR {
+	let point = POINT {
+		x: rect.x + rect.width / 2,
+		y: rect.y + rect.height / 2,
+	};
+	unsafe { MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST) }
 }
