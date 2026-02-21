@@ -2,6 +2,7 @@ use crate::config::Layout;
 use crate::tile::{self, Rect};
 use anyhow::{anyhow, Result};
 use windows::core::BOOL;
+use windows::Win32::Graphics::Dwm::*;
 use windows::Win32::Foundation::*;
 use windows::Win32::Graphics::Gdi::*;
 use windows::Win32::UI::Shell::*;
@@ -45,7 +46,7 @@ pub fn apply(action: Move, layout: Layout) -> Result<()> {
 	unsafe {
 		let _ = ShowWindow(window, SW_RESTORE);
 	}
-	let current = windowrect(window)?;
+	let current = windowvisible(window)?;
 	let screen = monitorarea(monitorfromrect(current))?;
 	let target = match action {
 		Move::Almost => tile::almost(screen, layout.width, layout.height),
@@ -102,14 +103,19 @@ fn moveother(window: HWND, current: Rect, step: i32) -> Result<Rect> {
 }
 
 fn setwindow(window: HWND, rect: Rect) -> Result<()> {
+	let frame = frame(window)?;
+	let x = rect.x - frame.left;
+	let y = rect.y - frame.top;
+	let width = rect.width + frame.left + frame.right;
+	let height = rect.height + frame.top + frame.bottom;
 	unsafe {
 		SetWindowPos(
 			window,
 			None,
-			rect.x,
-			rect.y,
-			rect.width,
-			rect.height,
+			x,
+			y,
+			width,
+			height,
 			SWP_NOACTIVATE | SWP_NOZORDER,
 		)?;
 	}
@@ -126,6 +132,46 @@ fn windowrect(window: HWND) -> Result<Rect> {
 		y: value.top,
 		width: value.right - value.left,
 		height: value.bottom - value.top,
+	})
+}
+
+fn windowvisible(window: HWND) -> Result<Rect> {
+	let mut value = RECT::default();
+	let ok = unsafe {
+		DwmGetWindowAttribute(
+			window,
+			DWMWA_EXTENDED_FRAME_BOUNDS,
+			&mut value as *mut RECT as *mut _,
+			std::mem::size_of::<RECT>() as u32,
+		)
+	};
+	if ok.is_ok() {
+		return Ok(Rect {
+			x: value.left,
+			y: value.top,
+			width: value.right - value.left,
+			height: value.bottom - value.top,
+		});
+	}
+	windowrect(window)
+}
+
+#[derive(Clone, Copy)]
+struct Frame {
+	left: i32,
+	top: i32,
+	right: i32,
+	bottom: i32,
+}
+
+fn frame(window: HWND) -> Result<Frame> {
+	let outer = windowrect(window)?;
+	let visible = windowvisible(window)?;
+	Ok(Frame {
+		left: visible.x - outer.x,
+		top: visible.y - outer.y,
+		right: (outer.x + outer.width) - (visible.x + visible.width),
+		bottom: (outer.y + outer.height) - (visible.y + visible.height),
 	})
 }
 
