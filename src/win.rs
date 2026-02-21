@@ -58,7 +58,10 @@ pub fn apply(action: Move, layout: Layout) -> Result<()> {
 		Move::Next => moveother(window, current, 1)?,
 		Move::Prev => moveother(window, current, -1)?,
 	};
-	setwindow(window, target)?;
+	match action {
+		Move::Left | Move::Right | Move::Top | Move::Bottom => setwindowouter(window, target)?,
+		_ => setwindow(window, target)?,
+	}
 	Ok(())
 }
 
@@ -116,6 +119,21 @@ fn setwindow(window: HWND, rect: Rect) -> Result<()> {
 			y,
 			width,
 			height,
+			SWP_NOACTIVATE | SWP_NOZORDER,
+		)?;
+	}
+	Ok(())
+}
+
+fn setwindowouter(window: HWND, rect: Rect) -> Result<()> {
+	unsafe {
+		SetWindowPos(
+			window,
+			None,
+			rect.x,
+			rect.y,
+			rect.width,
+			rect.height,
 			SWP_NOACTIVATE | SWP_NOZORDER,
 		)?;
 	}
