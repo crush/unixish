@@ -2,6 +2,7 @@ use crate::boot;
 use crate::config::{self, Config};
 use crate::hotkey::{self, Bind};
 use crate::icon;
+use crate::log;
 use crate::win;
 use anyhow::Result;
 use std::mem::size_of;
@@ -16,7 +17,9 @@ const MENU_PAUSE: usize = 1001;
 const MENU_CONFIG: usize = 1002;
 const MENU_RELOAD: usize = 1003;
 const MENU_STARTUP: usize = 1004;
-const MENU_QUIT: usize = 1005;
+const MENU_RESET: usize = 1005;
+const MENU_LOG: usize = 1006;
+const MENU_QUIT: usize = 1007;
 
 struct State {
 	config: Config,
@@ -27,8 +30,8 @@ struct State {
 
 pub fn run() -> Result<()> {
 	unsafe {
-		let class = wstr("unixish");
-		let title = wstr("unixish");
+		let class = wstr("Unixish");
+		let title = wstr("Unixish");
 		let icon = icon::load().unwrap_or(LoadIconW(None, IDI_APPLICATION)?);
 		let cursor = LoadCursorW(None, IDC_ARROW)?;
 		let wc = WNDCLASSW {
@@ -59,6 +62,7 @@ pub fn run() -> Result<()> {
 		let config = config::load()?;
 		let bind = hotkey::bind(&config)?;
 		hotkey::register(window, &bind)?;
+		log::write("start");
 		let state = Box::new(State {
 			config,
 			bind,
@@ -129,6 +133,7 @@ unsafe fn handle(window: HWND, cmd: usize) {
 	let state = &mut *ptr;
 	if cmd == MENU_PAUSE {
 		state.paused = !state.paused;
+		log::write(if state.paused { "pause" } else { "resume" });
 		return;
 	}
 	if cmd == MENU_CONFIG {
@@ -144,8 +149,10 @@ unsafe fn handle(window: HWND, cmd: usize) {
 				if hotkey::register(window, &bind).is_ok() {
 					state.config = config;
 					state.bind = bind;
+					log::write("reload");
 				} else {
 					let _ = hotkey::register(window, &state.bind);
+					log::write("reload-fail");
 				}
 			}
 		}
@@ -154,12 +161,34 @@ unsafe fn handle(window: HWND, cmd: usize) {
 	if cmd == MENU_STARTUP {
 		if boot::enabled() {
 			let _ = boot::off();
+			log::write("startup-off");
 		} else {
 			let _ = boot::on();
+			log::write("startup-on");
+		}
+		return;
+	}
+	if cmd == MENU_RESET {
+		if let Ok(config) = config::reset() {
+			if let Ok(bind) = hotkey::bind(&config) {
+				hotkey::unregister(window, &state.bind);
+				if hotkey::register(window, &bind).is_ok() {
+					state.config = config;
+					state.bind = bind;
+					log::write("reset");
+				}
+			}
+		}
+		return;
+	}
+	if cmd == MENU_LOG {
+		if let Ok(path) = log::path() {
+			let _ = std::process::Command::new("notepad").arg(path).spawn();
 		}
 		return;
 	}
 	if cmd == MENU_QUIT {
+		log::write("quit");
 		let _ = DestroyWindow(window);
 	}
 }
@@ -180,6 +209,8 @@ unsafe fn menu(window: HWND) {
 	let _ = AppendMenuW(menu, MF_STRING, MENU_CONFIG, PCWSTR(wstr("Config").as_ptr()));
 	let _ = AppendMenuW(menu, MF_STRING, MENU_RELOAD, PCWSTR(wstr("Reload").as_ptr()));
 	let _ = AppendMenuW(menu, MF_STRING, MENU_STARTUP, PCWSTR(wstr(startuptext).as_ptr()));
+	let _ = AppendMenuW(menu, MF_STRING, MENU_RESET, PCWSTR(wstr("Reset").as_ptr()));
+	let _ = AppendMenuW(menu, MF_STRING, MENU_LOG, PCWSTR(wstr("Log").as_ptr()));
 	let _ = AppendMenuW(menu, MF_SEPARATOR, 0, PCWSTR::null());
 	let _ = AppendMenuW(menu, MF_STRING, MENU_QUIT, PCWSTR(wstr("Quit").as_ptr()));
 	let mut point = POINT::default();
@@ -205,7 +236,7 @@ unsafe fn trayadd(window: HWND, icon: HICON) -> Result<()> {
 	data.uFlags = NIF_MESSAGE | NIF_TIP | NIF_ICON;
 	data.uCallbackMessage = WM_TRAY;
 	data.hIcon = icon;
-	copytip(&mut data, "unixish");
+	copytip(&mut data, "Unixish");
 	let ok = Shell_NotifyIconW(NIM_ADD, &data).as_bool();
 	if !ok {
 		return Err(anyhow::anyhow!("tray"));

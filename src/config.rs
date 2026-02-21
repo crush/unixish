@@ -79,3 +79,9 @@ pub fn save(value: &Config) -> Result<()> {
 	fs::write(file, text)?;
 	Ok(())
 }
+
+pub fn reset() -> Result<Config> {
+	let value = Config::default();
+	save(&value)?;
+	Ok(value)
+}

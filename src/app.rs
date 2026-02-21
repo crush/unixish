@@ -1,6 +1,7 @@
 use crate::boot;
 use crate::config;
 use crate::hotkey;
+use crate::log;
 use crate::tray;
 use anyhow::Result;
 use windows::Win32::UI::HiDpi::*;
@@ -35,6 +36,16 @@ pub fn run() -> Result<()> {
 					println!("{}", if boot::enabled() { "on" } else { "off" });
 				}
 			}
+			Ok(())
+		}
+		Some("reset") => {
+			let _ = config::reset()?;
+			println!("ok");
+			Ok(())
+		}
+		Some("log") => {
+			let path = log::path()?;
+			println!("{}", path.display());
 			Ok(())
 		}
 		_ => tray::run(),

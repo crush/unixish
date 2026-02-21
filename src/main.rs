@@ -5,6 +5,7 @@ mod config;
 mod hotkey;
 mod icon;
 mod key;
+mod log;
 mod tile;
 mod tray;
 mod win;
