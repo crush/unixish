@@ -33,7 +33,7 @@ pub fn apply(action: Move, layout: Layout) -> Result<()> {
 		let _ = ShowWindow(window, SW_RESTORE);
 	}
 	let current = windowrect(window)?;
-	let screen = monitorwork(unsafe { MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST) })?;
+	let screen = monitorwork(monitorfromrect(current))?;
 	let target = match action {
 		Move::Almost => tile::almost(screen, layout.width, layout.height),
 		Move::Center => tile::center(screen, current),
