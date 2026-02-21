@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::key;
 use crate::win::{self, Move};
 use anyhow::{anyhow, Result};
+use std::collections::HashSet;
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
@@ -30,6 +31,11 @@ pub fn run(config: &Config) -> Result<()> {
 	Ok(())
 }
 
+pub fn check(config: &Config) -> Result<()> {
+	let _ = load(config)?;
+	Ok(())
+}
+
 fn load(config: &Config) -> Result<Vec<Bind>> {
 	let list = [
 		(Move::Almost, config.hotkey.almost.clone()),
@@ -42,8 +48,12 @@ fn load(config: &Config) -> Result<Vec<Bind>> {
 		(Move::Prev, config.hotkey.prev.clone()),
 	];
 	let mut bind = Vec::with_capacity(list.len());
+	let mut seen = HashSet::<(u32, u32)>::new();
 	for (index, (moveid, text)) in list.into_iter().enumerate() {
 		let chord = key::parse(&text)?;
+		if !seen.insert((chord.mods.0, chord.key)) {
+			return Err(anyhow!("hotkey"));
+		}
 		bind.push(Bind {
 			id: index as i32 + 1,
 			moveid,

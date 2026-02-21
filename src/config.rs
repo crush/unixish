@@ -64,7 +64,10 @@ pub fn load() -> Result<Config> {
 		return Ok(value);
 	}
 	let text = fs::read_to_string(file)?;
-	Ok(serde_json::from_str(&text).unwrap_or_default())
+	let mut value: Config = serde_json::from_str(&text).unwrap_or_default();
+	value.layout.width = value.layout.width.clamp(0.2, 1.0);
+	value.layout.height = value.layout.height.clamp(0.2, 1.0);
+	Ok(value)
 }
 
 pub fn save(value: &Config) -> Result<()> {
