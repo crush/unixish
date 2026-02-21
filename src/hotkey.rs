@@ -1,39 +1,46 @@
 use crate::config::Config;
 use crate::key;
-use crate::win::{self, Move};
+use crate::win::Move;
 use anyhow::{anyhow, Result};
 use std::collections::HashSet;
+use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
-use windows::Win32::UI::WindowsAndMessaging::*;
 
 #[derive(Clone)]
-struct Bind {
-	id: i32,
-	moveid: Move,
-	mods: HOT_KEY_MODIFIERS,
-	key: u32,
+pub struct Bind {
+	pub id: i32,
+	pub moveid: Move,
+	pub mods: HOT_KEY_MODIFIERS,
+	pub key: u32,
 }
 
-pub fn run(config: &Config) -> Result<()> {
-	let bind = load(config)?;
-	for item in &bind {
-		if unsafe { RegisterHotKey(None, item.id, item.mods, item.key) }.is_err() {
-			for value in &bind {
-				let _ = unsafe { UnregisterHotKey(None, value.id) };
-			}
-			return Err(anyhow!("hotkey"));
-		}
-	}
-	looprun(config, &bind)?;
-	for item in &bind {
-		let _ = unsafe { UnregisterHotKey(None, item.id) };
-	}
-	Ok(())
+pub fn bind(config: &Config) -> Result<Vec<Bind>> {
+	load(config)
 }
 
 pub fn check(config: &Config) -> Result<()> {
 	let _ = load(config)?;
 	Ok(())
+}
+
+pub fn register(window: HWND, bind: &[Bind]) -> Result<()> {
+	for item in bind {
+		if unsafe { RegisterHotKey(Some(window), item.id, item.mods, item.key) }.is_err() {
+			unregister(window, bind);
+			return Err(anyhow!("hotkey"));
+		}
+	}
+	Ok(())
+}
+
+pub fn unregister(window: HWND, bind: &[Bind]) {
+	for item in bind {
+		let _ = unsafe { UnregisterHotKey(Some(window), item.id) };
+	}
+}
+
+pub fn action(bind: &[Bind], id: i32) -> Option<Move> {
+	bind.iter().find(|item| item.id == id).map(|item| item.moveid)
 }
 
 fn load(config: &Config) -> Result<Vec<Bind>> {
@@ -62,21 +69,4 @@ fn load(config: &Config) -> Result<Vec<Bind>> {
 		});
 	}
 	Ok(bind)
-}
-
-fn looprun(config: &Config, bind: &[Bind]) -> Result<()> {
-	let mut msg = MSG::default();
-	loop {
-		let state = unsafe { GetMessageW(&mut msg, None, 0, 0) };
-		if state.0 <= 0 {
-			break;
-		}
-		if msg.message == WM_HOTKEY {
-			let id = msg.wParam.0 as i32;
-			if let Some(item) = bind.iter().find(|value| value.id == id) {
-				let _ = win::apply(item.moveid, config.layout.clone());
-			}
-		}
-	}
-	Ok(())
 }

@@ -1,5 +1,7 @@
+use crate::boot;
 use crate::config;
 use crate::hotkey;
+use crate::tray;
 use anyhow::Result;
 use windows::Win32::UI::HiDpi::*;
 
@@ -18,9 +20,23 @@ pub fn run() -> Result<()> {
 			println!("ok");
 			Ok(())
 		}
-		_ => {
-			let config = config::load()?;
-			hotkey::run(&config)
+		Some("startup") => {
+			let value = std::env::args().nth(2).unwrap_or_else(|| "status".into());
+			match value.as_str() {
+				"on" => {
+					boot::on()?;
+					println!("on");
+				}
+				"off" => {
+					boot::off()?;
+					println!("off");
+				}
+				_ => {
+					println!("{}", if boot::enabled() { "on" } else { "off" });
+				}
+			}
+			Ok(())
 		}
+		_ => tray::run(),
 	}
 }

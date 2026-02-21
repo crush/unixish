@@ -9,10 +9,14 @@ pub struct Rect {
 pub fn almost(screen: Rect, width: f64, height: f64) -> Rect {
 	let xgap = ((1.0 - width).max(0.0) * f64::from(screen.width) / 2.0).round() as i32;
 	let ygap = ((1.0 - height).max(0.0) * f64::from(screen.height) / 2.0).round() as i32;
-	let width = (screen.width - (xgap * 2)).max(1);
-	let height = (screen.height - (ygap * 2)).max(1);
-	let x = screen.x + xgap;
-	let y = screen.y + ygap;
+	let gap = ((xgap + ygap) as f64 / 2.0).round() as i32;
+	let maxx = (screen.width - 1) / 2;
+	let maxy = (screen.height - 1) / 2;
+	let gap = gap.clamp(0, maxx.min(maxy));
+	let width = (screen.width - (gap * 2)).max(1);
+	let height = (screen.height - (gap * 2)).max(1);
+	let x = screen.x + gap;
+	let y = screen.y + gap;
 	Rect { x, y, width, height }
 }
 

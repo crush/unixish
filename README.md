@@ -5,17 +5,29 @@
 
 > usage?
 
-  unixish          # start hotkeys
-  unixish check    # validate config
-  unixish path     # print config path
+  unixish                 # run tray + hotkeys
+  unixish check           # validate config
+  unixish path            # print config path
+  unixish startup status  # startup status
+  unixish startup on      # enable startup
+  unixish startup off     # disable startup
+
+> tray?
+
+  pause or resume
+  config
+  reload
+  startup on or off
+  quit
 
 > features?
 
-  ? global hotkeys
-  ? 95% x 95% almost maximize
-  ? half and center actions
-  ? monitor hop next or prev
-  ? json config in appdata
+  - global hotkeys
+  - 95% x 95% almost maximize
+  - half and center actions
+  - boundary repeat monitor hop on left and right
+  - taskbar-aware monitor area
+  - json config in appdata
 
 > keys?
 
