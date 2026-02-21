@@ -12,7 +12,7 @@
 > features?
 
   ? global hotkeys
-  ? 98% x 98% almost maximize
+  ? 99% x 98% almost maximize
   ? half and center actions
   ? monitor hop next or prev
   ? json config in appdata
