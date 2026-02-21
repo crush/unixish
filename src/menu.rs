@@ -67,7 +67,7 @@ pub unsafe fn show(owner: HWND, list: Vec<Item>) {
         apply: HWND::default(),
         reset: HWND::default(),
         close: HWND::default(),
-        brush: CreateSolidBrush(rgb(9, 11, 18)),
+        brush: CreateSolidBrush(rgb(18, 18, 20)),
     });
     if let Ok(window) = CreateWindowExW(
         WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
@@ -448,8 +448,8 @@ unsafe fn color(window: HWND, w: WPARAM) -> LRESULT {
         return LRESULT(0);
     }
     let hdc = HDC(w.0 as *mut _);
-    let _ = SetTextColor(hdc, rgb(246, 247, 251));
-    let _ = SetBkColor(hdc, rgb(9, 11, 18));
+    let _ = SetTextColor(hdc, rgb(242, 242, 244));
+    let _ = SetBkColor(hdc, rgb(18, 18, 20));
     LRESULT((*ptr).brush.0 as isize)
 }
 
@@ -469,7 +469,7 @@ unsafe fn paint(window: HWND) {
         right: rc.right - 1,
         bottom: rc.bottom - 1,
     };
-    fillround(hdc, frame, rgb(11, 14, 24), rgb(71, 78, 98), 8);
+    fillround(hdc, frame, rgb(18, 18, 20), rgb(74, 74, 78), 8);
     if (*ptr).mode == Mode::Menu {
         paintmenu(ptr, hdc, rc);
     }
@@ -489,7 +489,7 @@ unsafe fn paintmenu(state: *mut State, hdc: HDC, rc: RECT) {
                 right: rc.right - PAD,
                 bottom: top + SEP / 2 + 1,
             };
-            let brush = CreateSolidBrush(rgb(48, 53, 71));
+            let brush = CreateSolidBrush(rgb(64, 64, 68));
             let _ = FillRect(hdc, &line, brush);
             let _ = DeleteObject(brush.into());
             top += SEP;
@@ -502,12 +502,12 @@ unsafe fn paintmenu(state: *mut State, hdc: HDC, rc: RECT) {
             bottom: top + ROW,
         };
         let (fill, edge) = if (*state).hover == index as i32 {
-            (rgb(40, 45, 60), rgb(71, 78, 98))
+            (rgb(50, 50, 54), rgb(84, 84, 88))
         } else {
-            (rgb(15, 18, 29), rgb(28, 34, 49))
+            (rgb(24, 24, 26), rgb(52, 52, 56))
         };
         fillround(hdc, row, fill, edge, 8);
-        let _ = SetTextColor(hdc, rgb(246, 247, 251));
+        let _ = SetTextColor(hdc, rgb(242, 242, 244));
         let mut textrect = RECT {
             left: row.left + 11,
             top: row.top,
@@ -584,7 +584,7 @@ unsafe fn expand(window: HWND, high: i32, wide: i32) -> POINT {
     let _ = GetMonitorInfoW(monitor, &mut info as *mut MONITORINFO as *mut _);
     let work = info.rcWork;
     let mut x = rect.right - wide;
-    let mut y = rect.top;
+    let mut y = rect.bottom - high;
     if x < work.left {
         x = work.left;
     }
