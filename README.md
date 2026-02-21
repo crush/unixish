@@ -2,6 +2,7 @@
 > install?
 
   cargo install --git https://github.com/crush/unixish unixish
+  powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/crush/unixish/main/scripts/install.ps1 | iex"
 
 > usage?
 
@@ -11,14 +12,18 @@
   unixish startup status  # startup status
   unixish startup on      # enable startup
   unixish startup off     # disable startup
+  unixish reset           # reset config
+  unixish log             # print log path
 
 > tray?
 
-  pause or resume
-  config
-  reload
-  startup on or off
-  quit
+  Pause
+  Config
+  Reload
+  Startup On or Off
+  Reset
+  Log
+  Quit
 
 > features?
 
@@ -28,6 +33,7 @@
   - boundary repeat monitor hop on left and right
   - taskbar-aware monitor area
   - json config in appdata
+  - startup and tray controls
 
 > keys?
 
@@ -43,6 +49,10 @@
 > config?
 
   %appdata%\\unixish\\config.json
+
+> contribute?
+
+  contribute/readme.md
 
 > stack?
 

@@ -1,0 +1,28 @@
+name: feature
+
+description: request behavior or ux improvement
+
+title: "feature: "
+
+labels:
+  - enhancement
+
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: need
+      description: what user need this solves
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: idea
+      description: suggested behavior
+    validations:
+      required: true
+  - type: textarea
+    id: edge
+    attributes:
+      label: edge cases

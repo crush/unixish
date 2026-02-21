@@ -8,5 +8,10 @@ if command -v cargo >/dev/null 2>&1; then
   exit 0
 fi
 
-echo "cargo"
+if command -v powershell >/dev/null 2>&1; then
+  powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/crush/unixish/main/scripts/install.ps1 | iex"
+  exit 0
+fi
+
+echo "install failed"
 exit 1
