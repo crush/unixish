@@ -17,7 +17,6 @@ struct Seed {
 struct State {
     owner: HWND,
     edit: [HWND; 10],
-    brush: HBRUSH,
 }
 
 pub unsafe fn open(owner: HWND) {
@@ -34,7 +33,7 @@ pub unsafe fn open(owner: HWND) {
         hCursor: cursor.unwrap_or_default(),
         lpszClassName: PCWSTR(class.as_ptr()),
         lpfnWndProc: Some(proc),
-        hbrBackground: HBRUSH(std::ptr::null_mut()),
+        hbrBackground: HBRUSH((COLOR_WINDOW.0 + 1) as isize as *mut _),
         ..Default::default()
     };
     let _ = RegisterClassW(&wc);
@@ -46,8 +45,8 @@ pub unsafe fn open(owner: HWND) {
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        420,
-        500,
+        520,
+        540,
         Some(owner),
         None,
         None,
@@ -69,7 +68,6 @@ unsafe extern "system" fn proc(window: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
             act(window, w.0 & 0xffff);
             LRESULT(0)
         }
-        WM_CTLCOLORSTATIC | WM_CTLCOLOREDIT => style(window, w),
         WM_DESTROY => {
             dropstate(window);
             LRESULT(0)
@@ -84,49 +82,63 @@ unsafe fn create(window: HWND, l: LPARAM) {
         return;
     }
     let seed = Box::from_raw((*make).lpCreateParams as *mut Seed);
-    let brush = CreateSolidBrush(rgb(19, 19, 22));
-    let edit = build(window);
+    let font = GetStockObject(DEFAULT_GUI_FONT);
+    let edit = build(window, font);
     let state = Box::new(State {
         owner: seed.owner,
         edit,
-        brush,
     });
     let _ = SetWindowLongPtrW(window, GWLP_USERDATA, Box::into_raw(state) as isize);
     load(window);
 }
 
-unsafe fn build(window: HWND) -> [HWND; 10] {
-    let font = GetStockObject(DEFAULT_GUI_FONT);
-    let name = [
+unsafe fn build(window: HWND, font: HGDIOBJ) -> [HWND; 10] {
+    let title = CreateWindowExW(
+        Default::default(),
+        PCWSTR(wstr("STATIC").as_ptr()),
+        PCWSTR(wstr("Config").as_ptr()),
+        WS_CHILD | WS_VISIBLE,
+        20,
+        14,
+        200,
+        26,
+        Some(window),
+        Some(mid(1001)),
+        None,
+        None,
+    )
+    .unwrap_or_default();
+    setfont(title, font);
+    let keys = [
         "Almost", "Center", "Left", "Right", "Top", "Bottom", "Next", "Prev", "Width", "Height",
     ];
     let mut list = [HWND::default(); 10];
-    for (index, text) in name.iter().enumerate() {
-        let y = 16 + index as i32 * 36;
+    for (index, key) in keys.iter().enumerate() {
+        let y = 52 + index as i32 * 40;
         let label = CreateWindowExW(
             Default::default(),
             PCWSTR(wstr("STATIC").as_ptr()),
-            PCWSTR(wstr(text).as_ptr()),
+            PCWSTR(wstr(key).as_ptr()),
             WS_CHILD | WS_VISIBLE,
-            14,
-            y + 4,
-            100,
-            22,
+            20,
+            y + 6,
+            110,
+            24,
             Some(window),
             Some(mid(2000 + index as i32)),
             None,
             None,
         )
         .unwrap_or_default();
-        let value = CreateWindowExW(
+        let input = CreateWindowExW(
             WS_EX_CLIENTEDGE,
             PCWSTR(wstr("EDIT").as_ptr()),
             PCWSTR(wstr("").as_ptr()),
             WINDOW_STYLE((WS_CHILD | WS_VISIBLE | WS_TABSTOP).0 | ES_AUTOHSCROLL as u32),
-            120,
+            130,
             y,
-            280,
-            26,
+            360,
+            30,
             Some(window),
             Some(mid(3000 + index as i32)),
             None,
@@ -134,12 +146,12 @@ unsafe fn build(window: HWND) -> [HWND; 10] {
         )
         .unwrap_or_default();
         setfont(label, font);
-        setfont(value, font);
-        list[index] = value;
+        setfont(input, font);
+        list[index] = input;
     }
-    let a = button(window, "Apply", APPLY as i32, 120, 405, font);
-    let r = button(window, "Reset", RESET as i32, 215, 405, font);
-    let c = button(window, "Close", CLOSE as i32, 310, 405, font);
+    let a = button(window, "Apply", APPLY as i32, 210, 460, font);
+    let r = button(window, "Reset", RESET as i32, 305, 460, font);
+    let c = button(window, "Close", CLOSE as i32, 400, 460, font);
     let _ = (a, r, c);
     list
 }
@@ -152,7 +164,7 @@ unsafe fn button(window: HWND, text: &str, id: i32, x: i32, y: i32, font: HGDIOB
         WINDOW_STYLE((WS_CHILD | WS_VISIBLE | WS_TABSTOP).0 | BS_PUSHBUTTON as u32),
         x,
         y,
-        90,
+        88,
         30,
         Some(window),
         Some(mid(id)),
@@ -204,8 +216,6 @@ unsafe fn apply(window: HWND) {
 
 unsafe fn pull(window: HWND) -> Option<Config> {
     let list = edit(window);
-    let width = text(list[8]).parse::<f64>().ok()?.clamp(0.2, 1.0);
-    let height = text(list[9]).parse::<f64>().ok()?.clamp(0.2, 1.0);
     Some(Config {
         hotkey: Hotkey {
             almost: text(list[0]),
@@ -217,7 +227,10 @@ unsafe fn pull(window: HWND) -> Option<Config> {
             next: text(list[6]),
             prev: text(list[7]),
         },
-        layout: Layout { width, height },
+        layout: Layout {
+            width: text(list[8]).parse::<f64>().ok()?.clamp(0.2, 1.0),
+            height: text(list[9]).parse::<f64>().ok()?.clamp(0.2, 1.0),
+        },
     })
 }
 
@@ -237,24 +250,12 @@ unsafe fn load(window: HWND) {
     }
 }
 
-unsafe fn style(window: HWND, w: WPARAM) -> LRESULT {
-    let hdc = HDC(w.0 as *mut _);
-    let _ = SetTextColor(hdc, rgb(240, 240, 244));
-    let _ = SetBkColor(hdc, rgb(19, 19, 22));
-    let ptr = GetWindowLongPtrW(window, GWLP_USERDATA) as *mut State;
-    if ptr.is_null() {
-        return LRESULT(0);
-    }
-    LRESULT((*ptr).brush.0 as isize)
-}
-
 unsafe fn dropstate(window: HWND) {
     let ptr = GetWindowLongPtrW(window, GWLP_USERDATA) as *mut State;
     if ptr.is_null() {
         return;
     }
-    let state = Box::from_raw(ptr);
-    let _ = DeleteObject(state.brush.into());
+    let _ = Box::from_raw(ptr);
     let _ = SetWindowLongPtrW(window, GWLP_USERDATA, 0);
 }
 
@@ -297,10 +298,6 @@ unsafe fn alert(window: HWND, text: &str) {
         PCWSTR(wstr("Unixish").as_ptr()),
         MB_OK | MB_ICONWARNING,
     );
-}
-
-fn rgb(red: u8, green: u8, blue: u8) -> COLORREF {
-    COLORREF((red as u32) | ((green as u32) << 8) | ((blue as u32) << 16))
 }
 
 fn wstr(text: &str) -> Vec<u16> {
