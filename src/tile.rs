@@ -75,3 +75,54 @@ pub fn bottom(screen: Rect) -> Rect {
         height,
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn almostsize() {
+        let screen = Rect {
+            x: 0,
+            y: 0,
+            width: 1000,
+            height: 800,
+        };
+        let rect = almost(screen, 0.95, 0.95);
+        assert_eq!(rect.width, 954);
+        assert_eq!(rect.height, 754);
+        assert_eq!(rect.x, 23);
+        assert_eq!(rect.y, 23);
+    }
+
+    #[test]
+    fn halfsplit() {
+        let screen = Rect {
+            x: 0,
+            y: 0,
+            width: 1001,
+            height: 801,
+        };
+        let leftrect = left(screen);
+        let rightrect = right(screen);
+        assert_eq!(leftrect.width + rightrect.width, 1001);
+        assert_eq!(leftrect.height, 801);
+        assert_eq!(rightrect.height, 801);
+        assert_eq!(rightrect.x, leftrect.width);
+    }
+
+    #[test]
+    fn topsplit() {
+        let screen = Rect {
+            x: 10,
+            y: 20,
+            width: 900,
+            height: 701,
+        };
+        let toprect = top(screen);
+        let bottomrect = bottom(screen);
+        assert_eq!(toprect.height + bottomrect.height, 701);
+        assert_eq!(toprect.y, 20);
+        assert_eq!(bottomrect.y, 20 + toprect.height);
+    }
+}

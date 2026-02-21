@@ -2,6 +2,7 @@ use crate::boot;
 use crate::config::{self, Config};
 use crate::hotkey::{self, Bind};
 use crate::icon;
+use crate::lock::Lock;
 use crate::state;
 use crate::update;
 use crate::win;
@@ -32,6 +33,10 @@ struct State {
 }
 
 pub fn run() -> Result<()> {
+    let _lock = match Lock::take() {
+        Some(value) => value,
+        None => return Ok(()),
+    };
     unsafe {
         let class = wstr("Unixish");
         let title = wstr("Unixish");

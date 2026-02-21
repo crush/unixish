@@ -33,6 +33,7 @@
   - boundary repeat monitor hop on left and right
   - taskbar-aware monitor area
   - json config in appdata
+  - zero telemetry
   - startup and tray controls
 
 > keys?

@@ -38,3 +38,28 @@ pub fn parse(text: &str) -> Result<Chord> {
         None => Err(anyhow!("key")),
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn parsealpha() {
+        let chord = parse("ctrl+shift+x").expect("chord");
+        assert_eq!(chord.key, b'X' as u32);
+        assert_eq!(chord.mods.0 & MOD_CONTROL.0, MOD_CONTROL.0);
+        assert_eq!(chord.mods.0 & MOD_SHIFT.0, MOD_SHIFT.0);
+    }
+
+    #[test]
+    fn parsearrow() {
+        let chord = parse("shift+left").expect("chord");
+        assert_eq!(chord.key, VK_LEFT.0 as u32);
+        assert_eq!(chord.mods.0 & MOD_SHIFT.0, MOD_SHIFT.0);
+    }
+
+    #[test]
+    fn parseinvalid() {
+        assert!(parse("ctrl+shift").is_err());
+    }
+}
