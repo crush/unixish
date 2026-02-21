@@ -469,13 +469,6 @@ unsafe fn paint(window: HWND) {
     let mut rc = RECT::default();
     let _ = GetClientRect(window, &mut rc);
     let _ = FillRect(hdc, &rc, (*ptr).brush);
-    let frame = RECT {
-        left: 0,
-        top: 0,
-        right: rc.right - 1,
-        bottom: rc.bottom - 1,
-    };
-    fillround(hdc, frame, rgb(18, 18, 20), rgb(74, 74, 78), 8);
     if (*ptr).mode == Mode::Menu {
         paintmenu(ptr, hdc, rc);
     }
