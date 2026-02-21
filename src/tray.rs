@@ -4,6 +4,7 @@ use crate::hotkey::{self, Bind};
 use crate::icon;
 use crate::lock::Lock;
 use crate::menu;
+use crate::panel;
 use crate::state;
 use crate::update;
 use crate::win;
@@ -223,9 +224,7 @@ unsafe fn handle(window: HWND, cmd: usize) {
     if cmd == PAUSE {
         state.paused = !state.paused;
     } else if cmd == CONFIG {
-        if let Ok(path) = config::path() {
-            let _ = std::process::Command::new("notepad").arg(path).spawn();
-        }
+        panel::open(window);
     } else if cmd == RELOAD {
         reload(window, state);
     } else if cmd == STARTUP {
