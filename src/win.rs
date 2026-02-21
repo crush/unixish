@@ -4,6 +4,7 @@ use anyhow::{anyhow, Result};
 use windows::core::BOOL;
 use windows::Win32::Foundation::*;
 use windows::Win32::Graphics::Gdi::*;
+use windows::Win32::UI::Shell::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 #[derive(Debug, Clone, Copy)]
@@ -22,6 +23,18 @@ pub enum Move {
 struct Screen {
 	handle: HMONITOR,
 	work: Rect,
+	full: Rect,
+	autohide: bool,
+}
+
+impl Screen {
+	fn area(&self) -> Rect {
+		if self.autohide {
+			self.full
+		} else {
+			self.work
+		}
+	}
 }
 
 pub fn apply(action: Move, layout: Layout) -> Result<()> {
@@ -33,7 +46,7 @@ pub fn apply(action: Move, layout: Layout) -> Result<()> {
 		let _ = ShowWindow(window, SW_RESTORE);
 	}
 	let current = windowrect(window)?;
-	let screen = monitorwork(monitorfromrect(current))?;
+	let screen = monitorarea(monitorfromrect(current))?;
 	let target = match action {
 		Move::Almost => tile::almost(screen, layout.width, layout.height),
 		Move::Center => tile::center(screen, current),
@@ -59,8 +72,8 @@ fn moveother(window: HWND, current: Rect, step: i32) -> Result<Rect> {
 		list.iter().position(|item| item.handle == near).unwrap_or(0)
 	}) as i32;
 	let next = (index + step).rem_euclid(list.len() as i32) as usize;
-	let source = list[index as usize].work;
-	let target = list[next].work;
+	let source = list[index as usize].area();
+	let target = list[next].area();
 	let sourcew = source.width.max(1) as f64;
 	let sourceh = source.height.max(1) as f64;
 	let relx = (current.x - source.x) as f64 / sourcew;
@@ -134,6 +147,55 @@ fn monitorwork(handle: HMONITOR) -> Result<Rect> {
 	})
 }
 
+fn monitorfull(handle: HMONITOR) -> Result<Rect> {
+	let mut info = MONITORINFO {
+		cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+		..Default::default()
+	};
+	let ok = unsafe { GetMonitorInfoW(handle, &mut info as *mut MONITORINFO as *mut _) };
+	if !ok.as_bool() {
+		return Err(anyhow!("monitor"));
+	}
+	let value = info.rcMonitor;
+	Ok(Rect {
+		x: value.left,
+		y: value.top,
+		width: value.right - value.left,
+		height: value.bottom - value.top,
+	})
+}
+
+fn monitorarea(handle: HMONITOR) -> Result<Rect> {
+	let work = monitorwork(handle)?;
+	let full = monitorfull(handle)?;
+	if hasautohide(full) {
+		Ok(full)
+	} else {
+		Ok(work)
+	}
+}
+
+fn hasautohide(full: Rect) -> bool {
+	let mut data = APPBARDATA {
+		cbSize: std::mem::size_of::<APPBARDATA>() as u32,
+		rc: RECT {
+			left: full.x,
+			top: full.y,
+			right: full.x + full.width,
+			bottom: full.y + full.height,
+		},
+		..Default::default()
+	};
+	for edge in [ABE_LEFT, ABE_TOP, ABE_RIGHT, ABE_BOTTOM] {
+		data.uEdge = edge;
+		let hit = unsafe { SHAppBarMessage(ABM_GETAUTOHIDEBAREX, &mut data) };
+		if hit != 0 {
+			return true;
+		}
+	}
+	false
+}
+
 fn screens() -> Result<Vec<Screen>> {
 	unsafe extern "system" fn call(
 		handle: HMONITOR,
@@ -148,6 +210,13 @@ fn screens() -> Result<Vec<Screen>> {
 		};
 		if unsafe { GetMonitorInfoW(handle, &mut info as *mut MONITORINFO as *mut _) }.as_bool() {
 			let work = info.rcWork;
+			let full = info.rcMonitor;
+			let fullrect = Rect {
+				x: full.left,
+				y: full.top,
+				width: full.right - full.left,
+				height: full.bottom - full.top,
+			};
 			list.push(Screen {
 				handle,
 				work: Rect {
@@ -156,6 +225,8 @@ fn screens() -> Result<Vec<Screen>> {
 					width: work.right - work.left,
 					height: work.bottom - work.top,
 				},
+				full: fullrect,
+				autohide: hasautohide(fullrect),
 			});
 		}
 		true.into()
