@@ -194,7 +194,7 @@ unsafe fn menumode(window: HWND, state: *mut State) {
     (*state).mode = Mode::Menu;
     hide(state);
     let high = size(&(*state).list);
-    let point = spot(high, WIDE);
+    let point = collapse(window, high, WIDE);
     let _ = SetWindowPos(
         window,
         None,
@@ -564,6 +564,33 @@ unsafe fn spot(high: i32, wide: i32) -> POINT {
 }
 
 unsafe fn expand(window: HWND, high: i32, wide: i32) -> POINT {
+    let mut rect = RECT::default();
+    let _ = GetWindowRect(window, &mut rect);
+    let monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+    let mut info = MONITORINFO {
+        cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+        ..Default::default()
+    };
+    let _ = GetMonitorInfoW(monitor, &mut info as *mut MONITORINFO as *mut _);
+    let work = info.rcWork;
+    let mut x = rect.right - wide;
+    let mut y = rect.top;
+    if x < work.left {
+        x = work.left;
+    }
+    if y < work.top {
+        y = work.top;
+    }
+    if x + wide > work.right {
+        x = work.right - wide;
+    }
+    if y + high > work.bottom {
+        y = work.bottom - high;
+    }
+    POINT { x, y }
+}
+
+unsafe fn collapse(window: HWND, high: i32, wide: i32) -> POINT {
     let mut rect = RECT::default();
     let _ = GetWindowRect(window, &mut rect);
     let monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
