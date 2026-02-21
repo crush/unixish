@@ -41,8 +41,8 @@ impl Default for Config {
 				prev: "ctrl+shift+left".into(),
 			},
 			layout: Layout {
-				width: 0.99,
-				height: 0.99,
+				width: 0.95,
+				height: 0.95,
 			},
 		}
 	}
