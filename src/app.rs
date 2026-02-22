@@ -54,6 +54,9 @@ pub fn run() -> Result<()> {
             println!("ok");
             Ok(())
         }
-        _ => tray::run(),
+        _ => {
+            let _ = boot::ensure();
+            tray::run()
+        }
     }
 }
