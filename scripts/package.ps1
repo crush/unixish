@@ -14,6 +14,7 @@ if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force $stage | Out-Null
 
 Copy-Item -Force "target\release\unixish.exe" (Join-Path $stage "unixish.exe")
+Copy-Item -Force "target\release\unixish.exe" (Join-Path $out "unixish.exe")
 Copy-Item -Force "README.md" (Join-Path $stage "README.md")
 Copy-Item -Force "contribute\readme.md" (Join-Path $stage "CONTRIBUTE.md")
 Copy-Item -Force "scripts\install.ps1" (Join-Path $out "unixish-setup.ps1")
@@ -25,7 +26,8 @@ $zip = Join-Path $out "unixish-windows-x64.zip"
 if (Test-Path $zip) { Remove-Item $zip -Force }
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip
 
-$sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
-"$sha  unixish-windows-x64.zip" | Set-Content -Encoding Ascii (Join-Path $out "SHA256SUMS.txt")
+$hashzip = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+$hashexe = (Get-FileHash (Join-Path $out "unixish.exe") -Algorithm SHA256).Hash.ToLower()
+"$hashzip  unixish-windows-x64.zip`n$hashexe  unixish.exe" | Set-Content -Encoding Ascii (Join-Path $out "SHA256SUMS.txt")
 
 & ".\scripts\winget.ps1" -zip $zip -out (Join-Path $out "winget")

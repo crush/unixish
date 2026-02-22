@@ -20,6 +20,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            dist/unixish.exe
             dist/unixish-windows-x64.zip
             dist/unixish-setup.ps1
             dist/unixish-setup.cmd

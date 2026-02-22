@@ -2,8 +2,6 @@
 > install?
 
   winget install Crush.Unixish
-  cargo install --git https://github.com/crush/unixish unixish
-  powershell -ep bypass -c "$s=(irm 'https://api.github.com/repos/crush/unixish/commits/main').sha; irm ('https://raw.githubusercontent.com/crush/unixish/'+$s+'/i') | iex"
 
 > usage?
 
