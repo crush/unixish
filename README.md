@@ -1,7 +1,9 @@
 ```bash
 > install?
 
-  winget install Crush.Unixish
+  download installer.exe from releases and run it
+  delete installer.exe after install
+  powershell -ep bypass -c "irm https://raw.githubusercontent.com/crush/unixish/main/i | iex"
 
 > usage?
 
