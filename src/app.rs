@@ -55,6 +55,9 @@ pub fn run() -> Result<()> {
             Ok(())
         }
         _ => {
+            if boot::place()? {
+                return Ok(());
+            }
             let _ = boot::ensure();
             tray::run()
         }

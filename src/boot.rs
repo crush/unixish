@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::fs;
 use std::process::Command;
+use std::path::PathBuf;
 use winreg::RegKey;
 use winreg::enums::*;
 
@@ -66,4 +67,25 @@ pub fn ensure() -> Result<()> {
     key.set_value("NoRepair", &1u32)?;
     key.set_value("URLInfoAbout", &"https://github.com/crush/unixish")?;
     Ok(())
+}
+
+pub fn place() -> Result<bool> {
+    let exe = std::env::current_exe()?;
+    let local = std::env::var("LOCALAPPDATA")?;
+    let need = PathBuf::from(local).join("unixish").join("unixish.exe");
+    if same(&exe, &need) {
+        return Ok(false);
+    }
+    if let Some(dir) = need.parent() {
+        fs::create_dir_all(dir)?;
+    }
+    fs::copy(&exe, &need)?;
+    Command::new(&need).spawn()?;
+    Ok(true)
+}
+
+fn same(left: &PathBuf, right: &PathBuf) -> bool {
+    let one = left.to_string_lossy().to_ascii_lowercase();
+    let two = right.to_string_lossy().to_ascii_lowercase();
+    one == two
 }
