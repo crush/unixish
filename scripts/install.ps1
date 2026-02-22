@@ -115,7 +115,7 @@ $size = [int][math]::Ceiling((Get-Item $exe).Length / 1KB)
 $cmd = "wscript.exe `"$unv`""
 Set-ItemProperty -Path $app -Name "DisplayName" -Type String -Value "Unixish"
 Set-ItemProperty -Path $app -Name "DisplayVersion" -Type String -Value $ver
-Set-ItemProperty -Path $app -Name "Publisher" -Type String -Value "crush"
+Set-ItemProperty -Path $app -Name "Publisher" -Type String -Value "Crush"
 Set-ItemProperty -Path $app -Name "InstallLocation" -Type ExpandString -Value $base
 Set-ItemProperty -Path $app -Name "DisplayIcon" -Type ExpandString -Value "$exe,0"
 Set-ItemProperty -Path $app -Name "UninstallString" -Type ExpandString -Value $cmd

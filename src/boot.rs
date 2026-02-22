@@ -56,7 +56,7 @@ pub fn ensure() -> Result<()> {
     let key = root.create_subkey(APP)?.0;
     key.set_value("DisplayName", &"Unixish")?;
     key.set_value("DisplayVersion", &env!("CARGO_PKG_VERSION"))?;
-    key.set_value("Publisher", &"crush")?;
+    key.set_value("Publisher", &"Crush")?;
     key.set_value("InstallLocation", &base.display().to_string())?;
     key.set_value("DisplayIcon", &format!("{},0", exe.display()))?;
     key.set_value("UninstallString", &cmd)?;
