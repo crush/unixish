@@ -1,7 +1,9 @@
 use anyhow::{Result, anyhow};
 use std::process::Command;
+use std::os::windows::process::CommandExt;
 
 const REPO: &str = "https://github.com/crush/unixish";
+const NOWIN: u32 = 0x08000000;
 
 pub fn run() -> Result<()> {
     let cmd = format!(
@@ -9,6 +11,7 @@ pub fn run() -> Result<()> {
         REPO.replace("github.com", "api.github.com/repos")
     );
     let status = Command::new("powershell")
+        .creation_flags(NOWIN)
         .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &cmd])
         .status()?;
     if status.success() {
@@ -31,6 +34,7 @@ fn remote() -> Option<String> {
         REPO.replace("github.com", "api.github.com/repos")
     );
     let out = Command::new("powershell")
+        .creation_flags(NOWIN)
         .args(["-NoProfile", "-Command", &cmd])
         .output()
         .ok()?;

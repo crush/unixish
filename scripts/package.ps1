@@ -19,7 +19,7 @@ Copy-Item -Force "README.md" (Join-Path $stage "README.md")
 Copy-Item -Force "contribute\readme.md" (Join-Path $stage "CONTRIBUTE.md")
 Copy-Item -Force "scripts\install.ps1" (Join-Path $out "unixish-setup.ps1")
 
-$cmd = '@echo off' + "`r`n" + 'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0unixish-setup.ps1"'
+$cmd = '@echo off' + "`r`n" + 'powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0unixish-setup.ps1"'
 Set-Content -Encoding Ascii -Path (Join-Path $out "unixish-setup.cmd") -Value $cmd
 
 $zip = Join-Path $out "unixish-windows-x64.zip"

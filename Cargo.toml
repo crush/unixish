@@ -3,6 +3,9 @@ name = "unixish"
 version = "0.0.1"
 edition = "2024"
 
+[build-dependencies]
+winres = "0.1"
+
 [dependencies]
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }
