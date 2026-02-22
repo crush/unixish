@@ -15,8 +15,8 @@ if ($json -and $json.tag_name) {
 	$ver = "$($json.tag_name)".TrimStart("v")
 }
 
-$home = [Environment]::GetFolderPath("LocalApplicationData")
-$base = Join-Path $home "unixish"
+$local = [Environment]::GetFolderPath("LocalApplicationData")
+$base = Join-Path $local "unixish"
 $temp = Join-Path $base "temp"
 New-Item -ItemType Directory -Force $base | Out-Null
 New-Item -ItemType Directory -Force $temp | Out-Null
@@ -38,7 +38,7 @@ if ($asset) {
 } else {
 	cargo install --git "https://github.com/$owner/$repo" unixish
 	$user = Join-Path $env:USERPROFILE ".cargo\bin\unixish.exe"
-	$prog = Join-Path $home "Programs\Rust\bin\unixish.exe"
+	$prog = Join-Path $local "Programs\Rust\bin\unixish.exe"
 	if (Test-Path $user) {
 		Copy-Item -Force $user $exe
 	} elseif (Test-Path $prog) {
@@ -52,8 +52,8 @@ $uns = Join-Path $base "unixish-uninstall.ps1"
 $unts = @'
 param([switch]$silent)
 $ErrorActionPreference = "SilentlyContinue"
-$home = [Environment]::GetFolderPath("LocalApplicationData")
-$base = Join-Path $home "unixish"
+$local = [Environment]::GetFolderPath("LocalApplicationData")
+$base = Join-Path $local "unixish"
 $exe = Join-Path $base "unixish.exe"
 $run = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
 $app = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Unixish"
