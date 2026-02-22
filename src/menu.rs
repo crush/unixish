@@ -127,7 +127,8 @@ unsafe extern "system" fn proc(window: HWND, msg: u32, w: WPARAM, l: LPARAM) -> 
                 let y = ((l.0 >> 16) & 0xffff) as i16 as i32;
                 let hit = pick(&(*ptr).list, y);
                 if hit >= 0 {
-                    let item = &(*ptr).list[hit as usize];
+                    let list = &(*ptr).list;
+                    let item = &list[hit as usize];
                     if !item.sep {
                         if item.id == CFG {
                             configmode(window, ptr);

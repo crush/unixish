@@ -2,7 +2,7 @@
 > install?
 
   cargo install --git https://github.com/crush/unixish unixish
-  powershell -ep bypass -c "irm https://raw.githubusercontent.com/crush/unixish/main/i | iex"
+  powershell -ep bypass -c "$s=(irm 'https://api.github.com/repos/crush/unixish/commits/main').sha; irm ('https://raw.githubusercontent.com/crush/unixish/'+$s+'/i') | iex"
 
 > usage?
 
@@ -58,4 +58,9 @@
 > stack?
 
   rust ? windows-rs
+
+> monorepo?
+
+  apps/web             # next.js website
+  src                  # windows app
 ```
