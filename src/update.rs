@@ -2,10 +2,12 @@ use anyhow::{Result, anyhow};
 use std::process::Command;
 
 const REPO: &str = "https://github.com/crush/unixish";
-const SCRIPT: &str = "https://raw.githubusercontent.com/crush/unixish/main/scripts/install.ps1";
 
 pub fn run() -> Result<()> {
-    let cmd = format!("irm {} | iex", SCRIPT);
+    let cmd = format!(
+        "$b=(irm '{}/contents/scripts/install.ps1?ref=main').content; $s=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b.Replace(\"`n\",''))); & ([ScriptBlock]::Create($s)) -silent",
+        REPO.replace("github.com", "api.github.com/repos")
+    );
     let status = Command::new("powershell")
         .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &cmd])
         .status()?;

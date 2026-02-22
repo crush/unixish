@@ -1,7 +1,2 @@
 /target
 /dist
-node_modules
-apps/web/.next
-apps/web/node_modules
-apps/web/out
-apps/web/.vercel

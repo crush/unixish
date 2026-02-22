@@ -21,4 +21,9 @@ jobs:
         with:
           files: |
             dist/unixish-windows-x64.zip
+            dist/unixish-setup.ps1
+            dist/unixish-setup.cmd
             dist/SHA256SUMS.txt
+            dist/winget/crush.unixish.yaml
+            dist/winget/crush.unixish.locale.en-US.yaml
+            dist/winget/crush.unixish.installer.yaml
